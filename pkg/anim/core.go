@@ -1,8 +1,9 @@
-package motor
+package anim
 
 import (
 	"image/color"
 
+	"github.com/Xelckis/motiongo/internal/core"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -54,23 +55,23 @@ type Track[T any] struct {
 }
 
 type Engine struct {
-	Root   *BaseNode
+	Root   *core.BaseNode
 	Tracks []func(frame int)
 	Frame  int
 }
 
 func NewEngine() *Engine {
-	return &Engine{NewNode(), []func(frame int){}, 0}
+	return &Engine{core.NewNode(), []func(frame int){}, 0}
 
 }
 
-type AnimBuilder[T any] struct {
+type Builder[T any] struct {
 	engine *Engine
 	track  *Track[T]
 }
 
-func (e *Engine) Animate[T any](target *T) *AnimBuilder[T] {
-	t := &Track[T]{Target: target}
+func (e *Engine) Animate[T any](target *T) *Builder[T] {
+	t := &Track[T]{Target: target, LerpFunc: Linear[T]()}
 
 	updater := func(frame int) {
 		if frame >= t.StartFrame && frame <= t.EndFrame {
@@ -91,21 +92,81 @@ func (e *Engine) Animate[T any](target *T) *AnimBuilder[T] {
 
 	e.Tracks = append(e.Tracks, updater)
 
-	return &AnimBuilder[T]{engine: e, track: t}
+	return &Builder[T]{engine: e, track: t}
 }
 
-func (b *AnimBuilder[T]) From(v T) *AnimBuilder[T] { b.track.StartVal = v; return b }
+type MoveBuilder struct {
+	internal *Builder[rl.Vector3]
+}
 
-func (b *AnimBuilder[T]) To(v T) *AnimBuilder[T] { b.track.EndVal = v; return b }
+func (e *Engine) Move(n core.Node) *MoveBuilder {
+	anim := e.Animate(n.Pos())
 
-func (b *AnimBuilder[T]) In(start, end int) *AnimBuilder[T] {
+	return &MoveBuilder{internal: anim}
+}
+
+func (b *MoveBuilder) To(x, y, z float32) *MoveBuilder {
+	b.internal.To(rl.Vector3{X: x, Y: y, Z: z})
+	return b
+}
+
+func (b *MoveBuilder) In(start, end int) {
+	b.internal.In(start, end)
+}
+
+type RotateBuilder struct {
+	internal *Builder[rl.Quaternion]
+}
+
+func (e *Engine) Rotate(n core.Node) *RotateBuilder {
+	anim := e.Animate(n.Rot())
+	return &RotateBuilder{internal: anim}
+}
+
+func (b *RotateBuilder) To(x, y, z float32) *RotateBuilder {
+	radX := x * rl.Deg2rad
+	radY := y * rl.Deg2rad
+	radZ := z * rl.Deg2rad
+	quat := rl.QuaternionFromEuler(radX, radY, radZ)
+
+	b.internal.To(quat)
+	return b
+}
+
+func (b *RotateBuilder) In(start, end int) {
+	b.internal.In(start, end)
+}
+
+type ScaleBuilder struct {
+	internal *Builder[rl.Vector3]
+}
+
+func (s *ScaleBuilder) To(x, y, z float32) *ScaleBuilder {
+	s.internal.To(rl.Vector3{X: x, Y: y, Z: z})
+	return s
+}
+
+func (s *ScaleBuilder) In(start, end int) {
+	s.internal.In(start, end)
+}
+
+func (e *Engine) Scale(n core.Node) *ScaleBuilder {
+	anim := e.Animate(n.Scl())
+	return &ScaleBuilder{internal: anim}
+}
+
+func (b *Builder[T]) From(v T) *Builder[T] { b.track.StartVal = v; return b }
+
+func (b *Builder[T]) To(v T) *Builder[T] { b.track.EndVal = v; return b }
+
+func (b *Builder[T]) In(start, end int) *Builder[T] {
 	b.track.StartFrame = start
 	b.track.EndFrame = end
 
 	return b
 }
 
-func (b *AnimBuilder[T]) Lerp(f Interpolator[T]) *AnimBuilder[T] { b.track.LerpFunc = f; return b }
+func (b *Builder[T]) Lerp(f Interpolator[T]) *Builder[T] { b.track.LerpFunc = f; return b }
 
 func (e *Engine) Tick() {
 	e.Frame++

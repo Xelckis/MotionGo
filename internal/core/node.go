@@ -1,4 +1,4 @@
-package motor
+package core
 
 import rl "github.com/gen2brain/raylib-go/raylib"
 
@@ -8,8 +8,12 @@ type Node interface {
 	AddChild(Node)
 	Render()
 	GetGlobalMatrix() rl.Matrix
+
+	Pos() *rl.Vector3
+	Rot() *rl.Quaternion
+	Scl() *rl.Vector3
 }
-type transform struct {
+type Transform struct {
 	Position rl.Vector3
 	Rotation rl.Quaternion
 	Scale    rl.Vector3
@@ -19,7 +23,19 @@ type BaseNode struct {
 	LocalMatrix  rl.Matrix
 	GlobalMatrix rl.Matrix
 	Children     []Node
-	Transform    *transform
+	Transform    *Transform
+}
+
+func (n *BaseNode) Pos() *rl.Vector3 {
+	return &n.Transform.Position
+}
+
+func (n *BaseNode) Rot() *rl.Quaternion {
+	return &n.Transform.Rotation
+}
+
+func (n *BaseNode) Scl() *rl.Vector3 {
+	return &n.Transform.Scale
 }
 
 func (n *BaseNode) GetGlobalMatrix() rl.Matrix {
@@ -44,29 +60,12 @@ func (n *BaseNode) Render() {
 	}
 }
 
-func NewTransform() *transform {
-	return &transform{
+func NewTransform() *Transform {
+	return &Transform{
 		Position: rl.Vector3{0, 0, 0},
 		Rotation: rl.Quaternion{0, 0, 0, 1},
 		Scale:    rl.Vector3{1, 1, 1},
 	}
-}
-
-type CubeNode struct {
-	*BaseNode
-	Color    rl.Color
-	Material rl.Material
-	Mesh     rl.Mesh
-}
-
-func NewCube(color rl.Color, width, height, length float32) *CubeNode {
-	mat := rl.LoadMaterialDefault()
-	mat.Maps.Color = color
-	return &CubeNode{NewNode(), color, mat, rl.GenMeshCube(width, height, length)}
-}
-
-func (c *CubeNode) Render() {
-	rl.DrawMesh(c.Mesh, c.Material, c.GlobalMatrix)
 }
 
 func (n *BaseNode) calculateLocalMatrix() {

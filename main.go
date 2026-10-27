@@ -3,7 +3,8 @@ package main
 import (
 	"math"
 
-	"github.com/Xelckis/motiongo/internal/motor"
+	"github.com/Xelckis/motiongo/pkg/anim"
+	"github.com/Xelckis/motiongo/pkg/entities"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -22,15 +23,15 @@ func main() {
 
 	backgroundColor := rl.Black
 
-	root := motor.NewEngine()
+	root := anim.NewEngine()
 
 	root.InitWindow(800, 500, 60, "test")
 	defer root.CloseWindow()
 
-	cube := motor.NewCube(rl.SkyBlue, 2, 2, 2)
+	cube := entities.NewCube(rl.SkyBlue, 2, 2, 2)
 	root.Root.AddChild(cube)
 
-	root.Animate(&cube.Transform.Rotation).From(rl.QuaternionIdentity()).To(rl.QuaternionFromAxisAngle(rl.Vector3{Y: 1}, float32(math.Pi))).In(0, 100).Lerp(motor.Linear[rl.Quaternion]())
+	root.Animate(&cube.Transform.Rotation).From(rl.QuaternionIdentity()).To(rl.QuaternionFromAxisAngle(rl.Vector3{Y: 1}, float32(math.Pi))).In(0, 500).Lerp(anim.Linear[rl.Quaternion]())
 
 	root.Render(backgroundColor, camera)
 }
